@@ -8,44 +8,76 @@
 #include <windows.h>
 using namespace std;
 #define DICT_SIZE 2376434
-#define maxLengthOfWord 50
+#define maxLengthOfWord 30
 
 
 // Words separation using dictionary
-string addSpaces(const string text, const set<string> dict) {
+string cutWordsRecursively(const string &text, const set<string> &dict, int firstPosition, int depth) {
 
-	string result, tmp, theLongestWord;
+	string tmp, theLongestWord;
+	tmp.clear();
+	theLongestWord.clear();
 
+	// TO DO
+	/*
+	Надо добавить метрику для того, чтобы не было много коротких слов
+	Учитывать глубину рекурсии
+	*/
 
-	for (int i = 0; i < text.length() - maxLengthOfWord; ++i) {
+	for (int i = firstPosition; i < text.length() + maxLengthOfWord; ++i) {
+		tmp += text[i];
 
-		tmp.clear();
-		theLongestWord.clear();
-
-		for (int j = i; j < i + maxLengthOfWord; ++j) {
-			tmp += text[j];
-
-			// ����� ���� � ������� (!=)
-			if (dict.find(tmp) != dict.end() && tmp.length() >= theLongestWord.length())
-				theLongestWord = tmp;
-
+		if (dict.find(tmp) != dict.end() &&					/// Если слово найдено
+			tmp.length() > theLongestWord.length()) {		/// и оно не пустое
+															/// и за ним идут depth - 1 слов 
 			//cout << tmp << endl;
-		}
-		result += theLongestWord;
-		result += " ";
-		tmp.clear();
-		i += theLongestWord.length();
-		if (theLongestWord.length() >= 1) i--;
-		//cout << "Next pos = " << i+1 << endl;
+			if (depth > 0) {
+				string nextWord = cutWordsRecursively(text, dict, firstPosition + tmp.length(), depth - 1);
+				//cout << depth << "  " << nextWord <<  "   " << tmp << "   " << theLongestWord << endl;
+				if (nextWord.length() != 0) {
 
+					theLongestWord = tmp;
+				}
+			}
+			else return string("EOR"); // END OF RECURTION
+		}
 	}
+
+	return string(theLongestWord);
+}
+
+
+// Words separation using dictionary
+string addSpaces(const string &text, const set<string> &dict) {
+
+	string result, word;
+	vector<string> words;
+
+
+	// Идём по всему тексту
+	int i = 0;
+	while (i < text.length() - maxLengthOfWord) {
+
+		//	cout << endl << "Position of i: " << i << endl;
+		word = cutWordsRecursively(text, dict, i, 8);
+		cout << word << endl;
+		i += word.length();
+		if (word.length() == 0)
+			i++;
+		words.push_back(word);
+	}
+
+
+	for (int i = 0; i < words.size(); ++i) {
+		result += words[i] + " ";
+	}
+
 
 	return result;
 }
 
 
-
-// �������� ������� �� �����
+// Загрузка словаря из файла
 void loadDict(set <string> &dict, char *fileName) {
 
 	int t_b, t_e;
@@ -72,7 +104,7 @@ void loadDict(set <string> &dict, char *fileName) {
 }
 
 
-// �������� ������ ��� �������� �� �����
+// Загрузка строки без пробелов из файла
 void loadEncryptedText(string &text, char *fileName) {
 
 	std::ifstream fin;
@@ -92,11 +124,14 @@ void main() {
 
 	loadDict(dict, "russian_dictionary.txt");
 	loadEncryptedText(text, "decrypted_2.txt");
-	cout << "Everything is ready." << endl;
-	dict.insert("��������");
-	dict.insert("��������");
-
+	cout << "Everything is ready:" << endl << endl;
+	dict.insert("баурджан");
+	dict.insert("момышулы");
+	dict.insert("панфилов");
+	dict.insert("панфилова");
+	dict.insert("волоколамское");
+	dict.insert("волоколамскому");
 	cout << addSpaces(text, dict);
-	
+
 	_getch();
 }
